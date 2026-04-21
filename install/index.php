@@ -64,11 +64,10 @@ class ushakov_cookie extends CModule
             $APPLICATION->IncludeAdminFile(GetMessage('USHAKOV_COOKIE_UNINSTALL_TITLE'), __DIR__ . '/unstep1.php');
         } elseif ($step == 2) {
             $GLOBALS['CACHE_MANAGER']->CleanAll();
-            ModuleManager::unRegisterModule($this->MODULE_ID);
-
-            $this->UnInstallDB(['savedata' => $_REQUEST['savedata'] ?? false]);
             $this->UnInstallEvents();
             $this->UnInstallFiles();
+            ModuleManager::unRegisterModule($this->MODULE_ID);
+            $this->UnInstallDB(['savedata' => $_REQUEST['savedata'] ?? false]);
 
             $obModule = $this;
             $APPLICATION->IncludeAdminFile(GetMessage('USHAKOV_COOKIE_INSTALL_TITLE'), __DIR__ . '/unstep2.php');
@@ -78,16 +77,22 @@ class ushakov_cookie extends CModule
     public function InstallDB($arParams = [])
     {
         $defaultOptions = require __DIR__ . '/../options_conf.php';
-        if (!is_array($defaultOptions) || !isset($defaultOptions['edit1']['options']) || !is_array($defaultOptions['edit1']['options'])) {
+        if (!is_array($defaultOptions) || !$defaultOptions) {
             return true;
         }
 
-        foreach ($defaultOptions['edit1']['options'] as $option) {
-            if (
-                isset($option['value']) && $option['value'] &&
-                isset($option['name']) && $option['name']
-            ) {
-                Option::set($this->MODULE_ID, $option['name'], $option['value']);
+        foreach ($defaultOptions as $tab) {
+            if (!isset($tab['options']) || !is_array($tab['options'])) {
+                continue;
+            }
+
+            foreach ($tab['options'] as $option) {
+                if (
+                    isset($option['value']) && $option['value'] &&
+                    isset($option['name']) && $option['name']
+                ) {
+                    Option::set($this->MODULE_ID, $option['name'], $option['value']);
+                }
             }
         }
 
@@ -144,8 +149,7 @@ class ushakov_cookie extends CModule
                     $docRoot = $arSites[$lid]['DOC_ROOT'] ?: $server->getDocumentRoot();
                     $dest = $docRoot . $arSites[$lid]['DIR'];
                     CopyDirFiles(__DIR__ . '/public/', $dest);
-                    // Активируем показ уведомления для тех сайтов которым копируется соглашение
-                    Option::set($this->MODULE_ID, 'active_' . $lid, 'Y');
+                    Option::set($this->MODULE_ID, 'public_installed_' . $lid, 'Y');
                 }
             }
         }
@@ -173,6 +177,10 @@ class ushakov_cookie extends CModule
         // Удаляем страницу соглашение
         $res = SiteTable::getList([]);
         while ($item = $res->fetch()) {
+            if (Option::get($this->MODULE_ID, 'public_installed_' . $item['LID'], 'N') !== 'Y') {
+                continue;
+            }
+
             $docRoot = $item['DOC_ROOT'] ?: $server->getDocumentRoot();
             DeleteDirFiles(__DIR__ . '/public', $docRoot . $item['DIR']);
         }
