@@ -1,11 +1,16 @@
 <?php
 
+use Bitrix\Main\Application;
 use Bitrix\Main\Config\Option;
 
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
-$siteId = $_POST['SITE_ID'] ?? 's1';
-$siteId = trim(strip_tags($siteId));
+$request = Application::getInstance()->getContext()->getRequest();
+$siteId = (string) ($request->getPost('SITE_ID') ?: (defined('SITE_ID') ? SITE_ID : 's1'));
+$siteId = preg_replace('/[^a-zA-Z0-9_]/', '', trim($siteId));
+if ($siteId === '') {
+    $siteId = 's1';
+}
 
 $disableMob = Option::get('ushakov.cookie', 'disableMob_' . $siteId, 'N');
 $bgColor = Option::get('ushakov.cookie', 'bg_color_' . $siteId, 'rgba(0, 0, 0, 0.85)'); //цвет плашки
@@ -26,11 +31,11 @@ $delayMs = \Bitrix\Main\Config\Option::get('ushakov.cookie', 'delay_ms', '0');
 $delayMs = (is_numeric($delayMs) && (int)$delayMs >= 0) ? (int)$delayMs : 0;
 $textButton = Option::get('ushakov.cookie', 'textButton_' . $siteId, '');
 
-$acceptBtnPosition = Option::get('ushakov.cookie', 'accept_btn_position_' . SITE_ID, 'right');
-$closeBtnPosition = Option::get('ushakov.cookie', 'close_btn_position_' . SITE_ID, 'right-top');
-$acceptBtnBgColor = Option::get('ushakov.cookie', 'accept_btn_bg_color_' . SITE_ID, '#4CAF50');
-$acceptBtnTextColor = Option::get('ushakov.cookie', 'accept_btn_text_color_' . SITE_ID, '#FFFFFF');
-$closeBtnColor = Option::get('ushakov.cookie', 'close_btn_color_' . SITE_ID, 'rgb(255, 7, 7)');
+$acceptBtnPosition = Option::get('ushakov.cookie', 'accept_btn_position_' . $siteId, 'right');
+$closeBtnPosition = Option::get('ushakov.cookie', 'close_btn_position_' . $siteId, 'right-top');
+$acceptBtnBgColor = Option::get('ushakov.cookie', 'accept_btn_bg_color_' . $siteId, '#4CAF50');
+$acceptBtnTextColor = Option::get('ushakov.cookie', 'accept_btn_text_color_' . $siteId, '#FFFFFF');
+$closeBtnColor = Option::get('ushakov.cookie', 'close_btn_color_' . $siteId, 'rgb(255, 7, 7)');
 
 
 // Замена текста в решётках на тег <a>
@@ -66,6 +71,7 @@ $responseData = [
     'status' => 'success',
     'message' => 'Cookie applied successfully',
     'data' => [
+        'siteId' => $siteId,
         'disableMob' => in_array($disableMob, ['Y', 'N']) ? $disableMob : 'N',
         'text' => $text,
         'bgColor' => $bgColor, // цвет плашки

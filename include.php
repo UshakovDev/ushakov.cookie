@@ -21,8 +21,8 @@ use Bitrix\Main\Page\Asset;
 
 $active = Option::get('ushakov.cookie', 'active_' . SITE_ID);
 
-// Прерываем выполнение только если явно отключено или мы в админке
-if ($active === 'N' || strpos($_SERVER['REQUEST_URI'], '/bitrix/admin') !== false) {
+// Подключаем баннер только при явном включении для текущего сайта.
+if ($active !== 'Y' || strpos($_SERVER['REQUEST_URI'], '/bitrix/admin') !== false) {
     return;
 }
 
