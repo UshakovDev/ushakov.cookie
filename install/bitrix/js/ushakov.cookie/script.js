@@ -1,5 +1,7 @@
 (function () {
-  if (document.cookie.split('; ').find(row => row.startsWith('ushakov_cookie='))) {
+  const currentSiteId = getSiteId()
+
+  if (hasConsentCookie(getConsentCookieName(currentSiteId))) {
     return
   }
 
@@ -10,7 +12,7 @@
     },
     credentials: 'same-origin',
     body: new URLSearchParams({
-      'SITE_ID': BX.message('SITE_ID'),
+      'SITE_ID': currentSiteId,
     }),
   })
   .then(response => response.json())
@@ -20,6 +22,33 @@
   .catch(error => {
     console.error('Ошибка при запросе опций модуля ushakov.cookie', error)
   })
+
+  function getSiteId () {
+    if (typeof BX !== 'undefined' && BX && typeof BX.message === 'function') {
+      const siteId = BX.message('SITE_ID')
+      if (siteId) {
+        return siteId
+      }
+    }
+
+    return 's1'
+  }
+
+  function getSessid () {
+    if (typeof BX !== 'undefined' && BX && typeof BX.bitrix_sessid === 'function') {
+      return BX.bitrix_sessid()
+    }
+
+    return ''
+  }
+
+  function getConsentCookieName (siteId) {
+    return 'ushakov_cookie_' + siteId
+  }
+
+  function hasConsentCookie (cookieName) {
+    return document.cookie.split('; ').some(row => row.startsWith(cookieName + '='))
+  }
 
 
   // Функция для затемнения цвета (для hover-эффекта кнопки)
@@ -123,6 +152,7 @@
 
   function handleContentLoaded (response) {
     const cfg = response && response.data ? response.data : {};
+    cfg.siteId = cfg.siteId || currentSiteId;
     const delay = parseInt(cfg.delayMs, 10);
     const run = () => {
       if (!isNaN(delay) && delay > 0) {
@@ -205,7 +235,9 @@
       closeElement = document.createElement('span');
       closeElement.classList.add('button');
       closeElement.textContent = options.textButton.trim();
-      closeElement.onclick = sendCookieRequestAndRemoveElement;
+      closeElement.onclick = function () {
+        acceptConsent(options.siteId || currentSiteId);
+      };
 
       // Цвета кнопки из настроек (если заданы)
       if (options.acceptBtnBgColor)  closeElement.style.backgroundColor = options.acceptBtnBgColor;
@@ -303,7 +335,7 @@
       closeElement.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          sendCookieRequestAndRemoveElement();
+          closeBanner();
         }
       });
       
@@ -316,7 +348,7 @@
       closeElement.addEventListener('mouseleave', function() {
         this.style.color = closeBtnColor;
       });
-      closeElement.onclick = sendCookieRequestAndRemoveElement;
+      closeElement.onclick = closeBanner;
 
       if (crossPos === 'left-top' || crossPos === 'right-top') {
         // ВЕРХНИЕ позиции: FLEX-ряд (крестик и текст в одной строке)
@@ -375,35 +407,72 @@
     // document.body.appendChild(cookieDiv)
   }
 
-  function sendCookieRequestAndRemoveElement () {
-    // Сначала сохраняем cookie согласно настройкам модуля
-    fetch('/bitrix/tools/ushakov_cookie_save.php', {
-      method: 'GET',
-      credentials: 'same-origin'
+  function closeBanner () {
+    removeBanner()
+  }
+
+  function removeBanner () {
+    const element = document.getElementById('ushakov-cookie-wrap')
+    if (element) {
+      element.remove()
+    }
+  }
+
+  function acceptConsent (siteId) {
+    const consentSiteId = siteId || currentSiteId;
+
+    saveConsent(consentSiteId)
+    .then(() => {
+      return saveConsentRegistry(consentSiteId)
+      .catch(error => {
+        console.warn('Failed to save consent to Bitrix registry:', error)
+      })
+    })
+    .then(() => {
+      removeBanner()
+    })
+    .catch(error => {
+      console.error('Error saving consent:', error)
+    })
+  }
+
+  function saveConsent (siteId) {
+    return fetch('/bitrix/tools/ushakov_cookie_save.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      credentials: 'same-origin',
+      body: new URLSearchParams({
+        'sessid': getSessid(),
+        'SITE_ID': siteId,
+      })
     })
     .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      return response.text()
+      return response.json().then(data => ({ ok: response.ok, data }))
     })
-    .then(data => {
+    .then(({ ok, data }) => {
+      if (!ok || !data.success) {
+        throw new Error(data && data.error ? data.error : 'Failed to save consent cookie')
+      }
+
       console.log('Cookie saved successfully')
-      
-      // Теперь отправляем согласие в реестр Bitrix через API
-      return fetch('/bitrix/tools/ushakov_cookie_consent.php', {
+    })
+  }
+
+  function saveConsentRegistry (siteId) {
+    return fetch('/bitrix/tools/ushakov_cookie_consent.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         },
         credentials: 'same-origin',
         body: new URLSearchParams({
-          'sessid': BX.bitrix_sessid(),
-          'SITE_ID': BX.message('SITE_ID'),
+          'sessid': getSessid(),
+          'SITE_ID': siteId,
           'url': window.location.href
         })
       })
-    })
     .then(response => response.json())
     .then(consentData => {
       if (consentData.success) {
@@ -421,15 +490,6 @@
         if (consentData.debug) {
           console.log('Debug info:', consentData.debug)
         }
-      }
-    })
-    .catch(error => {
-      console.error('Error saving consent:', error)
-    })
-    .finally(() => {
-      const element = document.getElementById('ushakov-cookie-wrap')
-      if (element) {
-        element.remove()
       }
     })
   }
