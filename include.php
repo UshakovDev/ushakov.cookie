@@ -26,5 +26,11 @@ if ($active !== 'Y' || strpos($_SERVER['REQUEST_URI'], '/bitrix/admin') !== fals
     return;
 }
 
+Asset::getInstance()->addString(
+    '<script>window.ushakovCookieConfig = ' . \CUtil::PhpToJSObject([
+        'siteId' => SITE_ID,
+        'sessid' => bitrix_sessid(),
+    ]) . ';</script>'
+);
 Asset::getInstance()->addJs('/bitrix/js/ushakov.cookie/script.js');
 Asset::getInstance()->addCss('/bitrix/css/ushakov.cookie/style.css');
