@@ -31,6 +31,16 @@ foreach ($tabsConf as $key => $arTab) {
 // Объект табов
 $tabControl = new CAdminTabControl('tabControl', $arTabs);
 
+$getOptionValue = static function (string $moduleId, array $option) {
+    if (!isset($option['name']) || $option['name'] === '') {
+        return $option['value'] ?? '';
+    }
+
+    $storedValue = \Bitrix\Main\Config\Option::get($moduleId, $option['name'], null);
+
+    return $storedValue === null ? ($option['value'] ?? '') : $storedValue;
+};
+
 // Сохранение значений
 $request = \Bitrix\Main\Context::getCurrent()->getRequest();
 if($request->isPost() && $Update.$Apply.$RestoreDefaults <> '' && $modulePerms === 'W' && check_bitrix_sessid())
@@ -104,7 +114,7 @@ $tabControl->Begin();
                 } elseif ($arOption['type'] === 'message') {
                     ?><tr><td colspan="2" align="center"><div class="adm-info-message-wrap" align="center"><div class="adm-info-message"><?=$arOption['message']?></div></div></td></tr><?php
                 } else {
-                    $val = \Bitrix\Main\Config\Option::get($mid, $arOption['name']) ?: $arOption['value'];
+                    $val = $getOptionValue($mid, $arOption);
                     ?>
                     <tr>
                         <td width="50%" class="adm-detail-content-cell-l" nowrap<?= $arOption['type'] === 'textarea' ? ' class="adm-detail-valign-top"' : '' ?>>

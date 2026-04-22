@@ -170,7 +170,7 @@ $offsetY  = preg_match($unitRe, $offsetY)  ? trim($offsetY)  : '7px';
 
 $responseData = [
     'status' => 'success',
-    'message' => 'Cookie applied successfully',
+    'message' => 'Cookie banner options loaded successfully',
     'data' => [
         'siteId' => $siteId,
         'disableMob' => in_array($disableMob, ['Y', 'N']) ? $disableMob : 'N',
@@ -189,14 +189,14 @@ $responseData = [
 
         'zIndex' => intval($zIndex) >= 0 ? intval($zIndex) : '9999',
         'delayMs' => $delayMs,
-        'textButton' => $textButton ? : '',
+        'textButton' => $textButton,
 
         'acceptBtnPosition' => in_array($acceptBtnPosition, ['left', 'right', 'bottom']) ? $acceptBtnPosition : 'right',
         'closeBtnPosition' => in_array($closeBtnPosition, ['left-top','right-top','left-middle','right-middle'], true)
               ? $closeBtnPosition : 'right-top',
-        'acceptBtnBgColor'  => $acceptBtnBgColor ?: '#4CAF50',
-        'acceptBtnTextColor'=> $acceptBtnTextColor ?: '#FFFFFF',
-        'closeBtnColor'     => $closeBtnColor ?: 'rgb(255, 7, 7)',
+        'acceptBtnBgColor'  => $acceptBtnBgColor !== '' ? $acceptBtnBgColor : '#4CAF50',
+        'acceptBtnTextColor'=> $acceptBtnTextColor !== '' ? $acceptBtnTextColor : '#FFFFFF',
+        'closeBtnColor'     => $closeBtnColor !== '' ? $closeBtnColor : 'rgb(255, 7, 7)',
     ]
 ];
 
