@@ -81,6 +81,9 @@ function ushakovCookieFindExistingConsent(string $consentTableClass, int $agreem
             return $row;
         }
 
+        // Legacy fallback: в старых записях модуля ORIGIN_ID мог хранить сам source
+        // ('cookie_banner'), а идентификация пользователя шла отдельно через USER_ID/IP.
+        // Эти ветки нужны только для обратной совместимости со старыми consent-записями.
         if ($userId !== null && $rowOriginId === $source && $rowUserId === $userId) {
             return $row;
         }
