@@ -8,6 +8,32 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.
 
 header('Content-Type: application/json; charset=UTF-8');
 
+function ushakovCookieNormalizeGuestClientId($value): string
+{
+    $normalized = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $value);
+    if (!is_string($normalized)) {
+        return '';
+    }
+
+    $normalized = trim($normalized);
+
+    return $normalized === '' ? '' : substr($normalized, 0, 64);
+}
+
+function ushakovCookieGenerateGuestClientId(): string
+{
+    try {
+        return rtrim(strtr(base64_encode(random_bytes(24)), '+/', '-_'), '=');
+    } catch (\Throwable $e) {
+        return sha1(uniqid((string) mt_rand(), true));
+    }
+}
+
+function ushakovCookieGetGuestCookieName(string $siteId): string
+{
+    return 'ushakov_cookie_guest_' . $siteId;
+}
+
 $response = static function (array $data, int $status = 200): void {
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -46,6 +72,7 @@ $expires = ($mode === 'session') ? 0 : (time() + $days * 86400);
 $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 $cookieName = 'ushakov_cookie_' . $siteId;
 $cookiePath = '/';
+$guestClientId = '';
 
 $site = SiteTable::getList([
     'filter' => ['=LID' => $siteId],
@@ -58,6 +85,24 @@ if (!empty($site['DIR']) && is_string($site['DIR'])) {
     if (substr($cookiePath, -1) !== '/') {
         $cookiePath .= '/';
     }
+}
+
+global $USER;
+$isAuthorized = is_object($USER) && $USER->IsAuthorized();
+if (!$isAuthorized) {
+    $guestCookieName = ushakovCookieGetGuestCookieName($siteId);
+    $guestClientId = ushakovCookieNormalizeGuestClientId($_COOKIE[$guestCookieName] ?? '');
+    if ($guestClientId === '') {
+        $guestClientId = ushakovCookieGenerateGuestClientId();
+    }
+
+    setcookie($guestCookieName, $guestClientId, [
+        'expires' => time() + 63072000,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 setcookie($cookieName, '1', [
@@ -73,4 +118,5 @@ $response([
     'siteId' => $siteId,
     'cookieName' => $cookieName,
     'cookiePath' => $cookiePath,
+    'guestClientId' => $guestClientId !== '' ? $guestClientId : null,
 ]);

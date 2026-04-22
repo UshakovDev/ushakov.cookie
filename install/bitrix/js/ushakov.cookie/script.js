@@ -438,8 +438,8 @@
     const consentSiteId = siteId || getSiteId();
 
     saveConsent(consentSiteId)
-    .then(() => {
-      return saveConsentRegistry(consentSiteId)
+    .then(saveResult => {
+      return saveConsentRegistry(consentSiteId, saveResult && saveResult.guestClientId ? saveResult.guestClientId : '')
       .catch(error => {
         console.warn('Failed to save consent to Bitrix registry:', error)
       })
@@ -475,11 +475,21 @@
       }
 
       console.log('Cookie saved successfully')
+      return data
     })
   }
 
-  function saveConsentRegistry (siteId) {
+  function saveConsentRegistry (siteId, guestClientId) {
     const endpoints = getRuntimeEndpoints()
+    const body = new URLSearchParams({
+      'sessid': getSessid(),
+      'SITE_ID': siteId,
+      'url': window.location.href
+    })
+
+    if (guestClientId) {
+      body.set('GUEST_CLIENT_ID', guestClientId)
+    }
 
     return fetch(endpoints.consentUrl, {
         method: 'POST',
@@ -487,11 +497,7 @@
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         },
         credentials: 'same-origin',
-        body: new URLSearchParams({
-          'sessid': getSessid(),
-          'SITE_ID': siteId,
-          'url': window.location.href
-        })
+        body: body
       })
     .then(response => response.json())
     .then(consentData => {
