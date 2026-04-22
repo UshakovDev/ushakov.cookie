@@ -143,17 +143,6 @@ try {
         'OPTIONS_JSON'      => is_array($options) ? json_encode($options, JSON_UNESCAPED_UNICODE) : (is_string($options) ? $options : null),
     ];
 
-    // Вызов совместим: статический метод вызываем по строке класса (не работает)
-    // $result = $ConsentClass::addByContext($agreementId, $ctx);
-
-    // if (!$result || (method_exists($result,'isSuccess') && !$result->isSuccess())) {
-    //     $errs = method_exists($result,'getErrorMessages') ? implode('; ', $result->getErrorMessages()) : 'Unknown error';
-    //     throw new SystemException($errs);
-    // }
-
-    // $consentId = method_exists($result,'getId') ? (int)$result->getId() : null;
-    
-    // --- стало: универсальная обработка ---
     $result = $ConsentClass::addByContext($agreementId, $ctx);
 
     $ok = false;
