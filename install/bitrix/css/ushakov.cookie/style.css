@@ -68,6 +68,7 @@
 
 .ushakov-cookie a {
     text-decoration: none;
+    cursor: pointer;
 }
 
 .ushakov-cookie-bg-custom {
