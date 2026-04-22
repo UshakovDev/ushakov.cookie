@@ -5,6 +5,118 @@ use Bitrix\Main\Config\Option;
 
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
+function ushakovCookieIsAllowedHref(string $href): bool
+{
+    return (bool) preg_match('~^(https?://|mailto:|tel:|/(?!/)|\#|\./|\.\./)~iu', $href);
+}
+
+function ushakovCookieNormalizeLinks(string $html): string
+{
+    if (trim($html) === '' || !class_exists('DOMDocument')) {
+        return $html;
+    }
+
+    $dom = new \DOMDocument('1.0', 'UTF-8');
+    $internalErrors = libxml_use_internal_errors(true);
+    $loaded = $dom->loadHTML(
+        '<?xml encoding="utf-8" ?><div id="ushakov-cookie-root">' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+    libxml_use_internal_errors($internalErrors);
+
+    if (!$loaded) {
+        return $html;
+    }
+
+    $root = $dom->getElementById('ushakov-cookie-root');
+    if (!$root) {
+        return $html;
+    }
+
+    $links = [];
+    foreach ($root->getElementsByTagName('a') as $link) {
+        $links[] = $link;
+    }
+
+    foreach ($links as $link) {
+        $href = trim((string) $link->getAttribute('href'));
+        if ($href === '' || !ushakovCookieIsAllowedHref($href)) {
+            $link->removeAttribute('href');
+        }
+
+        $target = strtolower(trim((string) $link->getAttribute('target')));
+        if ($target === '_blank') {
+            $link->setAttribute('target', '_blank');
+            $link->setAttribute('rel', 'noopener noreferrer nofollow');
+        } elseif (in_array($target, ['_self', '_parent', '_top'], true)) {
+            $link->setAttribute('target', $target);
+            $link->removeAttribute('rel');
+        } else {
+            $link->removeAttribute('target');
+            $link->removeAttribute('rel');
+        }
+    }
+
+    $result = '';
+    foreach ($root->childNodes as $childNode) {
+        $result .= $dom->saveHTML($childNode);
+    }
+
+    return trim($result);
+}
+
+function ushakovCookieSanitizeBannerHtml(string $html): string
+{
+    $sanitizer = new \CBXSanitizer();
+    $sanitizer->setLevel(\CBXSanitizer::SECURE_LEVEL_MIDDLE);
+    $sanitizer->AddTags([
+        'div' => ['align'],
+        'span' => [],
+        'em' => [],
+        'u' => [],
+        'font' => ['color', 'size'],
+        'p' => ['align'],
+        'blockquote' => ['title', 'align'],
+        'h1' => ['align'],
+        'h2' => ['align'],
+        'h3' => ['align'],
+        'h4' => ['align'],
+        'h5' => ['align'],
+        'h6' => ['align'],
+    ]);
+    $sanitizer->allowAttributes([
+        'target' => [
+            'tag' => static function ($tag) {
+                return $tag === 'a';
+            },
+            'content' => static function ($value) {
+                return in_array(strtolower(trim((string) $value)), ['_blank', '_self', '_parent', '_top'], true);
+            },
+        ],
+        'rel' => [
+            'tag' => static function ($tag) {
+                return $tag === 'a';
+            },
+            'content' => static function ($value) {
+                return (bool) preg_match('/^[a-z\s-]+$/i', (string) $value);
+            },
+        ],
+        'style' => [
+            'tag' => static function ($tag) {
+                return in_array($tag, ['div', 'p', 'span', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true);
+            },
+            'content' => static function ($value) {
+                return (bool) preg_match('/^\s*text-align\s*:\s*(left|center|right|justify)\s*;?\s*$/i', (string) $value);
+            },
+        ],
+    ]);
+
+    $sanitized = trim($sanitizer->sanitizeHtml($html));
+
+    return ushakovCookieNormalizeLinks($sanitized);
+}
+
 $request = Application::getInstance()->getContext()->getRequest();
 $siteId = (string) ($request->getPost('SITE_ID') ?: (defined('SITE_ID') ? SITE_ID : 's1'));
 $siteId = preg_replace('/[^a-zA-Z0-9_]/', '', trim($siteId));
@@ -37,22 +149,11 @@ $acceptBtnBgColor = Option::get('ushakov.cookie', 'accept_btn_bg_color_' . $site
 $acceptBtnTextColor = Option::get('ushakov.cookie', 'accept_btn_text_color_' . $siteId, '#FFFFFF');
 $closeBtnColor = Option::get('ushakov.cookie', 'close_btn_color_' . $siteId, 'rgb(255, 7, 7)');
 
-
-// Замена текста в решётках на тег <a>
-$link = Option::get('ushakov.cookie', 'link_' . $siteId);
-if (trim($link) === '') {
-    $link = '/cookies-agreement.php';
-}
-// $textTemplate = Option::get('ushakov.cookie', 'text_' . $siteId);
 $textTemplate = Option::get('ushakov.cookie', 'text_' . $siteId, '');
 if (trim($textTemplate) === '') {
     $textTemplate = "<div style='text-align: center;'>Мы используем файлы cookie для работы сайта и сбора статистики. Продолжая пользоваться сайтом, вы соглашаетесь с нашей <a href='/cookies-agreement.php' target='_blank'>Политикой использования cookie</a>.</div>";
 }
-
-$allowed = '<a><p><b><strong><i><em><u><br><div><span><font>'
-         . '<ul><ol><li>'
-         . '<h1><h2><h3><h4><h5><h6><blockquote>';
-$text = trim(strip_tags($textTemplate, $allowed));
+$text = ushakovCookieSanitizeBannerHtml($textTemplate);
 
 // простая валидация радиуса (разрешим px|rem|em|%)
 $borderRadius = trim($borderRadius);
