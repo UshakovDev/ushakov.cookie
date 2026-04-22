@@ -7,12 +7,13 @@
 
   function init () {
     const currentSiteId = getSiteId()
+    const endpoints = getRuntimeEndpoints()
 
     if (hasConsentCookie(getConsentCookieName(currentSiteId))) {
       return
     }
 
-    fetch('/bitrix/tools/ushakov_cookie_options.php', {
+    fetch(endpoints.optionsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -32,11 +33,22 @@
   }
 
   function getRuntimeConfig () {
-    if (typeof window !== 'undefined' && window.ushakovCookieConfig) {
+    if (typeof window !== 'undefined' && window.ushakovCookieConfig && typeof window.ushakovCookieConfig === 'object') {
       return window.ushakovCookieConfig
     }
 
     return {}
+  }
+
+  function getRuntimeEndpoints () {
+    const runtimeConfig = getRuntimeConfig()
+    const endpoints = runtimeConfig.endpoints || {}
+
+    return {
+      optionsUrl: endpoints.optionsUrl || '/bitrix/tools/ushakov_cookie_options.php',
+      saveUrl: endpoints.saveUrl || '/bitrix/tools/ushakov_cookie_save.php',
+      consentUrl: endpoints.consentUrl || '/bitrix/tools/ushakov_cookie_consent.php',
+    }
   }
 
   function getSiteId () {
@@ -222,10 +234,6 @@
     innerDiv.classList.add('ushakov-cookie-bg-custom');
     innerDiv.style.setProperty('--ushakov-cookie-bg', options.bgColor);
 
-    innerDiv.style.setProperty('--ushakov-cookie-text-color', options.textColor);
-
-    innerDiv.style.setProperty('--ushakov-cookie-font-size', options.fontSize);
-
     // радиус
     if (options.borderRadius) {
       innerDiv.style.setProperty('--ushakov-cookie-radius', options.borderRadius);
@@ -344,8 +352,6 @@
       const rawPos  = (options.closeBtnPosition || 'right-top');
       const crossPos = String(rawPos).trim();
 
-      // создаём элемент крестика (span × — чтобы красить цветом; иначе <img>)
-      let closeElement;
       // Если цвет не задан, используем красный по умолчанию
       const closeBtnColor = options.closeBtnColor || 'rgb(255, 7, 7)';
       
@@ -415,24 +421,6 @@
     // Финальная сборка
     cookieDiv.appendChild(innerDiv);
     document.body.appendChild(cookieDiv);
-
-    // // Вставляем или img, или span в зависимости от textButton
-    // let closeElement
-    // if (options.textButton && options.textButton.trim() !== '') {
-    //   closeElement = document.createElement('span')
-    //   closeElement.classList.add('button')
-    //   closeElement.textContent = options.textButton
-    // } else {
-    //   closeElement = document.createElement('img')
-    //   closeElement.src = '/bitrix/images/ushakov.cookie/close.svg'
-    // }
-    // closeElement.onclick = sendCookieRequestAndRemoveElement
-
-    // // Собираем и вставляем в документ
-    // innerDiv.appendChild(cookieText)
-    // innerDiv.appendChild(closeElement)
-    // cookieDiv.appendChild(innerDiv)
-    // document.body.appendChild(cookieDiv)
   }
 
   function closeBanner () {
@@ -465,7 +453,9 @@
   }
 
   function saveConsent (siteId) {
-    return fetch('/bitrix/tools/ushakov_cookie_save.php', {
+    const endpoints = getRuntimeEndpoints()
+
+    return fetch(endpoints.saveUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -489,7 +479,9 @@
   }
 
   function saveConsentRegistry (siteId) {
-    return fetch('/bitrix/tools/ushakov_cookie_consent.php', {
+    const endpoints = getRuntimeEndpoints()
+
+    return fetch(endpoints.consentUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
