@@ -22,7 +22,7 @@ if (is_array($obModule->errors) && count($obModule->errors)) {
     CAdminMessage::ShowNote(GetMessage("MOD_UNINST_OK"));
 }
 ?>
-<form action="<?= $APPLICATION->GetCurPage() ?>">
+<form action="<?= $APPLICATION->GetCurPage() ?>" method="get">
     <input type="hidden" name="lang" value="<?= LANG ?>">
-    <input type="submit" name="" value="<?= GetMessage("MOD_BACK") ?>">
-<form>
+    <input type="submit" value="<?= GetMessage("MOD_BACK") ?>">
+</form>

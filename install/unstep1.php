@@ -8,7 +8,7 @@ foreach (GetModuleEvents('ushakov.cookie', 'OnModuleUnInstall', true) as $arEven
 
 ?>
 
-<form action="<?= $APPLICATION->GetCurPage(); ?>">
+<form action="<?= $APPLICATION->GetCurPage(); ?>" method="post">
     <?= bitrix_sessid_post(); ?>
     <input type="hidden" name="lang" value="<?= LANG ?>">
     <input type="hidden" name="id" value="ushakov.cookie">
