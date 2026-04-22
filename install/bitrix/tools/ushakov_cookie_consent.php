@@ -54,6 +54,10 @@ try {
     }
 
     $siteId         = (string)($request->getPost('SITE_ID') ?: (defined('SITE_ID') ? SITE_ID : 's1'));
+    $siteId         = preg_replace('/[^a-zA-Z0-9_]/', '', trim($siteId));
+    if ($siteId === '') {
+        $siteId = 's1';
+    }
     $moduleId       = 'ushakov.cookie';
     $saveToRegistry = Option::get($moduleId, 'save_to_registry_'.$siteId, 'N');
     $agreementId    = (int)Option::get($moduleId, 'agreement_id_'.$siteId, 0);
@@ -212,17 +216,6 @@ try {
             'retType'   => is_object($result) ? 'object' : (is_int($result) ? 'int' : (is_bool($result) ? 'bool' : gettype($result))),
             'originUpdated' => $originUpdated,
             'source'    => $source,
-        ]
-    ]);
-
-    $response([
-        'success'   => true,
-        'message'   => 'Consent saved successfully (API)',
-        'consentId' => $consentId,
-        'debug'     => [
-            'agreement' => ['id'=>(int)$agr['ID'],'name'=>(string)$agr['NAME'],'type'=>(string)$agr['TYPE']],
-            'ctx'       => ['USER_ID'=>$userId,'IP'=>$ip,'URL'=>$url,'ORIGIN_ID'=>$source],
-            'siteId'    => $siteId,
         ]
     ]);
 
