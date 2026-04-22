@@ -15,6 +15,84 @@ use Bitrix\Main\SystemException;
 
 header('Content-Type: application/json; charset=UTF-8');
 
+function ushakovCookieNormalizeGuestClientId($value): string
+{
+    $normalized = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $value);
+    if (!is_string($normalized)) {
+        return '';
+    }
+
+    $normalized = trim($normalized);
+    if ($normalized === '' || strlen($normalized) < 16) {
+        return '';
+    }
+
+    return substr($normalized, 0, 64);
+}
+
+function ushakovCookieGetGuestCookieName(string $siteId): string
+{
+    return 'ushakov_cookie_guest_' . $siteId;
+}
+
+function ushakovCookieBuildOriginId(?int $userId, string $siteId, string $guestClientId, string $ip): string
+{
+    if ($userId !== null && $userId > 0) {
+        return 'user:' . $userId;
+    }
+
+    if ($guestClientId !== '') {
+        return 'guest:' . $siteId . ':' . $guestClientId;
+    }
+
+    return 'ip:' . sha1($siteId . '|' . $ip);
+}
+
+function ushakovCookieStartSessionIfNeeded(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+}
+
+function ushakovCookieGetOriginSessionFlagKey(int $agreementId, string $originId): string
+{
+    return 'ushakov_cookie_accept_logged_' . $agreementId . '_' . sha1($originId);
+}
+
+function ushakovCookieFindExistingConsent(string $consentTableClass, int $agreementId, string $source, string $originId, ?int $userId, string $ip): ?array
+{
+    $result = $consentTableClass::getList([
+        'filter' => [
+            '=AGREEMENT_ID' => $agreementId,
+        ],
+        'select' => ['ID', 'DATE_INSERT', 'USER_ID', 'IP', 'URL', 'ORIGINATOR_ID', 'ORIGIN_ID'],
+        'order'  => ['ID' => 'DESC'],
+        'limit'  => 200,
+    ]);
+
+    while ($row = $result->fetch()) {
+        $rowOriginId = trim((string) ($row['ORIGIN_ID'] ?? ''));
+        $rowOriginatorId = trim((string) ($row['ORIGINATOR_ID'] ?? ''));
+        $rowIp = trim((string) ($row['IP'] ?? ''));
+        $rowUserId = isset($row['USER_ID']) ? (int) $row['USER_ID'] : null;
+
+        if ($rowOriginatorId === $source && $rowOriginId === $originId) {
+            return $row;
+        }
+
+        if ($userId !== null && $rowOriginId === $source && $rowUserId === $userId) {
+            return $row;
+        }
+
+        if ($userId === null && $rowOriginId === $source && $ip !== '' && $rowIp === $ip) {
+            return $row;
+        }
+    }
+
+    return null;
+}
+
 $response = function(array $data, int $status = 200) {
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -92,35 +170,32 @@ try {
     $ua     = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
     $url    = (string)($request->getPost('url') ?: ($APPLICATION ? $APPLICATION->GetCurPageParam() : ($request->getRequestUri() ?: '')));
     $source = 'cookie_banner';
+    $guestClientId = ushakovCookieNormalizeGuestClientId($request->getPost('GUEST_CLIENT_ID'));
+    if ($guestClientId === '') {
+        $guestClientId = ushakovCookieNormalizeGuestClientId($_COOKIE[ushakovCookieGetGuestCookieName($siteId)] ?? '');
+    }
+    $originId = ushakovCookieBuildOriginId($userId, $siteId, $guestClientId, (string) $ip);
 
     $text    = (string)$request->getPost('text');     // если показывать СВОЙ текст
     $options = $request->getPost('options');          // чекбоксы, если есть
+    $originSessionFlagKey = ushakovCookieGetOriginSessionFlagKey($agreementId, $originId);
+
+    ushakovCookieStartSessionIfNeeded();
+    if (!empty($_SESSION[$originSessionFlagKey])) {
+        $response(['success' => true, 'existing' => true, 'message' => 'Consent already logged in this session']);
+    }
 
     if ($oncePerSession) {
         $flagKey = 'cookie_accept_logged_'.$agreementId;
-        if (!isset($_SESSION)) { session_start(); }
         if (!empty($_SESSION[$flagKey])) {
             $response(['success'=>true,'skipped'=>true,'message'=>'Already logged in this session']);
         }
     }
 
-    // Антидубликаты: тот же AGREEMENT_ID и ORIGIN_ID и (USER_ID или IP)
-    $existing = $ConsentTableClass::getList([
-        'filter' => [
-            '=AGREEMENT_ID' => $agreementId,
-            '=ORIGIN_ID'    => $source,
-            [
-                'LOGIC' => 'OR',
-                ['=USER_ID' => $userId],
-                ['=IP'      => $ip],
-            ],
-        ],
-        'select' => ['ID','DATE_INSERT','USER_ID','IP','URL'],
-        'order'  => ['ID' => 'DESC'],
-        'limit'  => 1,
-    ])->fetch();
+    $existing = ushakovCookieFindExistingConsent($ConsentTableClass, $agreementId, $source, $originId, $userId, (string) $ip);
 
     if ($existing) {
+        $_SESSION[$originSessionFlagKey] = true;
         if ($oncePerSession) { $_SESSION[$flagKey] = true; }
         $response([
             'success'   => true,
@@ -137,13 +212,13 @@ try {
         'URL'               => $url,
         'USER_AGENT'        => $ua,
         'ORIGINATOR_ID'     => $source,
-        'ORIGIN_ID'         => $source,
+        'ORIGIN_ID'         => $originId,
         'ORIGINAL_TEXT'     => $text ?: null,
         'ORIGINAL_TEXT_HASH'=> $text ? hash('sha256', $text) : null,
         'OPTIONS_JSON'      => is_array($options) ? json_encode($options, JSON_UNESCAPED_UNICODE) : (is_string($options) ? $options : null),
     ];
 
-    $result = $ConsentClass::addByContext($agreementId, $ctx);
+    $result = $ConsentClass::addByContext($agreementId, $source, $originId, $ctx);
 
     $ok = false;
     $consentId = null;
@@ -183,8 +258,8 @@ try {
     $originUpdated = false;
     try {
         $ConsentTableClass::update($consentId, [
-            'ORIGINATOR_ID' => $source,      // 'cookie_banner'
-            'ORIGIN_ID'     => $source,
+            'ORIGINATOR_ID' => $source,
+            'ORIGIN_ID'     => $originId,
         ]);
         $originUpdated = true;
     } catch (Exception $e) {
@@ -192,6 +267,7 @@ try {
         error_log('Failed to update ORIGIN fields: ' . $e->getMessage());
     }
 
+    $_SESSION[$originSessionFlagKey] = true;
     if ($oncePerSession) { $_SESSION[$flagKey] = true; }
 
     $response([
@@ -200,7 +276,14 @@ try {
         'consentId' => $consentId,
         'debug'     => [
             'agreement' => ['id'=>(int)$agr['ID'],'name'=>(string)$agr['NAME'],'type'=>(string)$agr['TYPE']],
-            'ctx'       => ['USER_ID'=>$userId,'IP'=>$ip,'URL'=>$url,'ORIGIN_ID'=>$source],
+            'ctx'       => [
+                'USER_ID' => $userId,
+                'IP' => $ip,
+                'URL' => $url,
+                'ORIGINATOR_ID' => $source,
+                'ORIGIN_ID' => $originId,
+                'GUEST_CLIENT_ID' => $guestClientId !== '' ? $guestClientId : null,
+            ],
             'siteId'    => $siteId,
             'retType'   => is_object($result) ? 'object' : (is_int($result) ? 'int' : (is_bool($result) ? 'bool' : gettype($result))),
             'originUpdated' => $originUpdated,
