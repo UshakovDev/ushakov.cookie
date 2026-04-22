@@ -88,8 +88,9 @@ class ushakov_cookie extends CModule
 
             foreach ($tab['options'] as $option) {
                 if (
-                    isset($option['value']) && $option['value'] &&
-                    isset($option['name']) && $option['name']
+                    array_key_exists('value', $option) &&
+                    isset($option['name']) &&
+                    $option['name'] !== ''
                 ) {
                     Option::set($this->MODULE_ID, $option['name'], $option['value']);
                 }
