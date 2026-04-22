@@ -1,29 +1,51 @@
 (function () {
-  const currentSiteId = getSiteId()
+  scheduleInit()
 
-  if (hasConsentCookie(getConsentCookieName(currentSiteId))) {
-    return
+  function scheduleInit () {
+    setTimeout(init, 0)
   }
 
-  fetch('/bitrix/tools/ushakov_cookie_options.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    credentials: 'same-origin',
-    body: new URLSearchParams({
-      'SITE_ID': currentSiteId,
-    }),
-  })
-  .then(response => response.json())
-  .then(options => {
-    handleContentLoaded(options)
-  })
-  .catch(error => {
-    console.error('Ошибка при запросе опций модуля ushakov.cookie', error)
-  })
+  function init () {
+    const currentSiteId = getSiteId()
+
+    if (hasConsentCookie(getConsentCookieName(currentSiteId))) {
+      return
+    }
+
+    fetch('/bitrix/tools/ushakov_cookie_options.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      credentials: 'same-origin',
+      body: new URLSearchParams({
+        'SITE_ID': currentSiteId,
+      }),
+    })
+    .then(response => response.json())
+    .then(options => {
+      handleContentLoaded(options, currentSiteId)
+    })
+    .catch(error => {
+      console.error('Ошибка при запросе опций модуля ushakov.cookie', error)
+    })
+  }
+
+  function getRuntimeConfig () {
+    if (typeof window !== 'undefined' && window.ushakovCookieConfig) {
+      return window.ushakovCookieConfig
+    }
+
+    return {}
+  }
 
   function getSiteId () {
+    const runtimeConfig = getRuntimeConfig()
+
+    if (runtimeConfig.siteId) {
+      return runtimeConfig.siteId
+    }
+
     if (typeof BX !== 'undefined' && BX && typeof BX.message === 'function') {
       const siteId = BX.message('SITE_ID')
       if (siteId) {
@@ -35,6 +57,12 @@
   }
 
   function getSessid () {
+    const runtimeConfig = getRuntimeConfig()
+
+    if (runtimeConfig.sessid) {
+      return runtimeConfig.sessid
+    }
+
     if (typeof BX !== 'undefined' && BX && typeof BX.bitrix_sessid === 'function') {
       return BX.bitrix_sessid()
     }
@@ -150,9 +178,9 @@
     return color;
   }
 
-  function handleContentLoaded (response) {
+  function handleContentLoaded (response, fallbackSiteId) {
     const cfg = response && response.data ? response.data : {};
-    cfg.siteId = cfg.siteId || currentSiteId;
+    cfg.siteId = cfg.siteId || fallbackSiteId || getSiteId();
     const delay = parseInt(cfg.delayMs, 10);
     const run = () => {
       if (!isNaN(delay) && delay > 0) {
@@ -419,7 +447,7 @@
   }
 
   function acceptConsent (siteId) {
-    const consentSiteId = siteId || currentSiteId;
+    const consentSiteId = siteId || getSiteId();
 
     saveConsent(consentSiteId)
     .then(() => {
