@@ -35,6 +35,17 @@ function ushakovCookieGetGuestCookieName(string $siteId): string
     return 'ushakov_cookie_guest_' . $siteId;
 }
 
+/**
+ * Важно: ORIGIN_ID в Bitrix ограничен по длине(30 символов), поэтому originId здесь должен быть
+ * коротким и стабильным. Нельзя использовать слишком длинный "читаемый" идентификатор
+ * гостя, потому что БД может молча обрезать значение, а это ломает exact-match поиск
+ * существующей записи и дедупликацию согласий.
+ *
+ * Идея:
+ * - для одного и того же пользователя / гостя originId должен быть стабильным;
+ * - originId должен полностью помещаться в поле ORIGIN_ID таблицы Bitrix;
+ * - lookup и insert должны использовать одно и то же значение без скрытой обрезки.
+ */
 function ushakovCookieBuildOriginId(?int $userId, string $siteId, string $guestClientId, string $ip): string
 {
     if ($userId !== null && $userId > 0) {
@@ -42,10 +53,10 @@ function ushakovCookieBuildOriginId(?int $userId, string $siteId, string $guestC
     }
 
     if ($guestClientId !== '') {
-        return 'guest:' . $siteId . ':' . $guestClientId;
+        return 'guest:' . substr(sha1($siteId . '|' . $guestClientId), 0, 20);
     }
 
-    return 'ip:' . sha1($siteId . '|' . $ip);
+    return 'ip:' . substr(sha1($siteId . '|' . $ip), 0, 20);
 }
 
 function ushakovCookieStartSessionIfNeeded(): void
@@ -182,20 +193,37 @@ try {
     $text    = (string)$request->getPost('text');     // если показывать СВОЙ текст
     $options = $request->getPost('options');          // чекбоксы, если есть
     $originSessionFlagKey = ushakovCookieGetOriginSessionFlagKey($agreementId, $originId);
+    $flagKey = 'cookie_accept_logged_'.$agreementId;
 
     ushakovCookieStartSessionIfNeeded();
     if (!empty($_SESSION[$originSessionFlagKey])) {
-        $response(['success' => true, 'existing' => true, 'message' => 'Consent already logged in this session']);
+        $response([
+            'success' => true,
+            'existing' => true,
+            'message' => 'Consent already logged in this session',
+        ]);
     }
 
     if ($oncePerSession) {
-        $flagKey = 'cookie_accept_logged_'.$agreementId;
         if (!empty($_SESSION[$flagKey])) {
-            $response(['success'=>true,'skipped'=>true,'message'=>'Already logged in this session']);
+            $response([
+                'success'=>true,
+                'skipped'=>true,
+                'message'=>'Already logged in this session',
+            ]);
         }
     }
 
-    $existing = ushakovCookieFindExistingConsent($ConsentTableClass, $agreementId, $source, $originId, $userId, (string) $ip);
+    $existing = null;
+    if (is_string($ConsentClass) && method_exists($ConsentClass, 'getByContext')) {
+        $existing = $ConsentClass::getByContext($agreementId, $source, $originId, [
+            'USER_ID' => $userId,
+        ]);
+    }
+
+    if (!$existing) {
+        $existing = ushakovCookieFindExistingConsent($ConsentTableClass, $agreementId, $source, $originId, $userId, (string) $ip);
+    }
 
     if ($existing) {
         $_SESSION[$originSessionFlagKey] = true;
