@@ -313,6 +313,22 @@
     rejectElement.onclick = function () {
       rejectConsent(siteId)
     }
+    if (options.rejectBtnBgColor) {
+      rejectElement.style.backgroundColor = options.rejectBtnBgColor
+    }
+    if (options.rejectBtnTextColor) {
+      rejectElement.style.color = options.rejectBtnTextColor
+    }
+    rejectElement.addEventListener('mouseenter', function () {
+      if (options.rejectBtnBgColor && options.rejectBtnBgColor !== 'transparent') {
+        this.style.backgroundColor = darkenColor(options.rejectBtnBgColor, 0.2)
+      }
+    })
+    rejectElement.addEventListener('mouseleave', function () {
+      if (options.rejectBtnBgColor) {
+        this.style.backgroundColor = options.rejectBtnBgColor
+      }
+    })
 
     const actionsDiv = document.createElement('div')
     actionsDiv.className = 'ushakov-cookie__actions'
@@ -332,18 +348,21 @@
         align === 'left' ? 'flex-start' :
         align === 'right' ? 'flex-end' : 'center'
       actionsDiv.style.alignSelf = 'center'
+      actionsDiv.style.flexDirection = 'row'
       innerDiv.appendChild(cookieText)
       innerDiv.appendChild(actionsDiv)
     } else if (btnPos === 'left') {
       innerDiv.style.display = 'flex'
       innerDiv.style.alignItems = 'center'
       innerDiv.style.gap = '10px'
+      actionsDiv.style.flexDirection = 'column'
       innerDiv.appendChild(actionsDiv)
       innerDiv.appendChild(cookieText)
     } else {
       innerDiv.style.display = 'flex'
       innerDiv.style.alignItems = 'center'
       innerDiv.style.gap = '10px'
+      actionsDiv.style.flexDirection = 'column'
       innerDiv.appendChild(cookieText)
       innerDiv.appendChild(actionsDiv)
     }

@@ -41,26 +41,22 @@ $MESS["USHAKOV_COOKIE_OPT_HELP_MESSAGE"] = "📱 <b>Адаптивность м�
 
 // Кнопки плашки
 $MESS["USHAKOV_COOKIE_TEXT_BUTTON"] = "Принять";
-$MESS["USHAKOV_COOKIE_TEXT_BUTTON_LABEL"] = "Текст кнопки";
-$MESS["USHAKOV_COOKIE_TEXT_BUTTON_PLACEHOLDER"] = "Если оставить пустым – будет крестик";
+$MESS["USHAKOV_COOKIE_TEXT_BUTTON_LABEL"] = "Текст кнопки согласия";
+$MESS["USHAKOV_COOKIE_TEXT_BUTTON_PLACEHOLDER"] = "Если оставить пустым — будет «Согласиться»";
+$MESS["USHAKOV_COOKIE_REJECT_TEXT_BUTTON_LABEL"] = "Текст кнопки отказа";
+$MESS["USHAKOV_COOKIE_REJECT_TEXT_BUTTON_PLACEHOLDER"] = "Если оставить пустым — будет «Отказаться»";
 
-// Положение кнопки согласия
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION"] = "Положение кнопки согласия";
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_LEFT"] = "Слева от текста";
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_RIGHT"] = "Справа от текста";
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_BOTTOM"] = "Под текстом";
-
-// Положение крестика
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION"] = "Положение крестика";
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_LEFT_TOP"] = "Слева сверху";
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_RIGHT_TOP"] = "Справа сверху";
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_LEFT_MIDDLE"] = "Слева по середине (рядом с текстом)";
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_RIGHT_MIDDLE"] = "Справа по середине (рядом с текстом)";
+// Положение блока кнопок
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION"] = "Положение кнопок согласия и отказа";
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_LEFT"] = "Блок кнопок слева от текста";
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_RIGHT"] = "Блок кнопок справа от текста";
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_BOTTOM"] = "Блок кнопок под текстом";
 
 // Цвета кнопок
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_BG_COLOR"] = "Цвет фона кнопки";
-$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_TEXT_COLOR"] = "Цвет текста кнопки";
-$MESS["USHAKOV_COOKIE_OPT_CLOSE_BTN_COLOR"] = "Цвет иконки закрытия (крестик)";
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_BG_COLOR"] = "Цвет фона кнопки согласия";
+$MESS["USHAKOV_COOKIE_OPT_ACCEPT_BTN_TEXT_COLOR"] = "Цвет текста кнопки согласия";
+$MESS["USHAKOV_COOKIE_OPT_REJECT_BTN_BG_COLOR"] = "Цвет фона кнопки отказа";
+$MESS["USHAKOV_COOKIE_OPT_REJECT_BTN_TEXT_COLOR"] = "Цвет текста кнопки отказа";
 
 // Интеграция с системой согласий Bitrix
 $MESS["USHAKOV_COOKIE_OPT_SAVE_TO_REGISTRY"] = "Сохранять согласие в реестр Bitrix?";

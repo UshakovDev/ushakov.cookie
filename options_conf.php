@@ -93,6 +93,15 @@ $buildSiteOptions = static function (array $site): array {
     ];
 
     $siteOptions[] = [
+        'type' => 'text',
+        'name' => 'reject_text_button_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_REJECT_TEXT_BUTTON_LABEL'),
+        'value' => '',
+        'placeholder' => Loc::getMessage('USHAKOV_COOKIE_REJECT_TEXT_BUTTON_PLACEHOLDER'),
+        'group' => 'CONTENT'
+    ];
+
+    $siteOptions[] = [
         'type'  => 'list',
         'name'  => 'accept_btn_position_' . $siteId,
         'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION'),
@@ -102,20 +111,6 @@ $buildSiteOptions = static function (array $site): array {
             'bottom' => Loc::getMessage('USHAKOV_COOKIE_OPT_ACCEPT_BTN_POSITION_BOTTOM'),
         ],
         'value' => 'right',
-        'group' => 'CONTENT'
-    ];
-
-    $siteOptions[] = [
-        'type'  => 'list',
-        'name'  => 'close_btn_position_' . $siteId,
-        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION'),
-        'list'  => [
-            'left-top'     => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_LEFT_TOP'),
-            'right-top'    => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_RIGHT_TOP'),
-            'left-middle'  => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_LEFT_MIDDLE'),
-            'right-middle' => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_POSITION_RIGHT_MIDDLE'),
-        ],
-        'value' => 'right-top',
         'group' => 'CONTENT'
     ];
 
@@ -137,12 +132,21 @@ $buildSiteOptions = static function (array $site): array {
         'group' => 'APPEARANCE'
     ];
 
-    $closeColor = htmlspecialcharsbx(\Bitrix\Main\Config\Option::get('ushakov.cookie', 'close_btn_color_' . $siteId, 'rgb(255, 7, 7)'));
+    $rejectBg = htmlspecialcharsbx(\Bitrix\Main\Config\Option::get('ushakov.cookie', 'reject_btn_bg_color_' . $siteId, 'transparent'));
     $siteOptions[] = [
         'type'  => 'custom',
-        'name'  => 'close_btn_color_' . $siteId,
-        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_CLOSE_BTN_COLOR'),
-        'html'  => '<input class="spectrum-bg-color" type="text" name="close_btn_color_' . $siteId . '" value="' . $closeColor . '" style="width:140px;">',
+        'name'  => 'reject_btn_bg_color_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_REJECT_BTN_BG_COLOR'),
+        'html'  => '<input class="spectrum-bg-color" type="text" name="reject_btn_bg_color_' . $siteId . '" value="' . $rejectBg . '" style="width:140px;">',
+        'group' => 'APPEARANCE'
+    ];
+
+    $rejectText = htmlspecialcharsbx(\Bitrix\Main\Config\Option::get('ushakov.cookie', 'reject_btn_text_color_' . $siteId, '#FFFFFF'));
+    $siteOptions[] = [
+        'type'  => 'custom',
+        'name'  => 'reject_btn_text_color_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_REJECT_BTN_TEXT_COLOR'),
+        'html'  => '<input class="spectrum-bg-color" type="text" name="reject_btn_text_color_' . $siteId . '" value="' . $rejectText . '" style="width:140px;">',
         'group' => 'APPEARANCE'
     ];
 

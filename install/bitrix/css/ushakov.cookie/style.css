@@ -58,11 +58,15 @@
 .ushakov-cookie__actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+}
+
+.ushakov-cookie__actions .button {
+    margin-left: 0;
 }
 
 .ushakov-cookie .button--reject {
-    background: transparent;
+    background: #5f6368;
     border: 1px solid rgba(255, 255, 255, 0.45);
     color: #f1f1f1;
 }

@@ -90,7 +90,7 @@ git clone https://github.com/UshakovDev/ushakov.cookie.git ushakov.cookie
 |-------|----------|
 | Активность | Включить/выключить плашку |
 | Позиция/выравнивание | Верх/низ; слева/центр/справа |
-| Кнопки выбора | Явные действия: «Согласиться» / «Отказаться» (без крестика) |
+| Кнопки выбора | Общая позиция блока + тексты и цвета для «Согласиться» / «Отказаться» (без крестика) |
 | Задержка, z-index, отступы | Управление отображением |
 | Хранение согласия | Сессия или N дней |
 | Текст плашки | HTML/визуальный редактор + ссылка на `/cookies-agreement.php` |
@@ -236,7 +236,7 @@ Flexible banner for 1C-Bitrix with full customization: position, alignment, expl
 
 **Settings:**
 Admin → Product settings → Module settings → ushakov.cookie.
-Options: enable, position/alignment, explicit accept/reject actions, delay/z-index/margins, storage lifetime, banner HTML, (optional) Consent Registry integration.
+Options: enable, position/alignment, shared button block position, explicit accept/reject actions with separate texts/colors, delay/z-index/margins, storage lifetime, banner HTML, (optional) Consent Registry integration.
 
 **Technical features:**
 - Automatic detection of UserConsent API version (new/old cores)

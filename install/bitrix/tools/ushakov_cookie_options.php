@@ -142,13 +142,13 @@ $zIndex = Option::get('ushakov.cookie', 'z_index_' . $siteId, '9999');
 $delayMs = \Bitrix\Main\Config\Option::get('ushakov.cookie', 'delay_ms', '0');
 $delayMs = (is_numeric($delayMs) && (int)$delayMs >= 0) ? (int)$delayMs : 0;
 $textButton = Option::get('ushakov.cookie', 'textButton_' . $siteId, '');
-$rejectButtonText = 'Отказаться';
+$rejectButtonText = Option::get('ushakov.cookie', 'reject_text_button_' . $siteId, '');
 
 $acceptBtnPosition = Option::get('ushakov.cookie', 'accept_btn_position_' . $siteId, 'right');
-$closeBtnPosition = Option::get('ushakov.cookie', 'close_btn_position_' . $siteId, 'right-top');
 $acceptBtnBgColor = Option::get('ushakov.cookie', 'accept_btn_bg_color_' . $siteId, '#4CAF50');
 $acceptBtnTextColor = Option::get('ushakov.cookie', 'accept_btn_text_color_' . $siteId, '#FFFFFF');
-$closeBtnColor = Option::get('ushakov.cookie', 'close_btn_color_' . $siteId, 'rgb(255, 7, 7)');
+$rejectBtnBgColor = Option::get('ushakov.cookie', 'reject_btn_bg_color_' . $siteId, 'transparent');
+$rejectBtnTextColor = Option::get('ushakov.cookie', 'reject_btn_text_color_' . $siteId, '#FFFFFF');
 
 $textTemplate = Option::get('ushakov.cookie', 'text_' . $siteId, '');
 if (trim($textTemplate) === '') {
@@ -191,14 +191,13 @@ $responseData = [
         'zIndex' => intval($zIndex) >= 0 ? intval($zIndex) : '9999',
         'delayMs' => $delayMs,
         'textButton' => $textButton,
-        'rejectButtonText' => $rejectButtonText,
+        'rejectButtonText' => $rejectButtonText !== '' ? $rejectButtonText : 'Отказаться',
 
         'acceptBtnPosition' => in_array($acceptBtnPosition, ['left', 'right', 'bottom']) ? $acceptBtnPosition : 'right',
-        'closeBtnPosition' => in_array($closeBtnPosition, ['left-top','right-top','left-middle','right-middle'], true)
-              ? $closeBtnPosition : 'right-top',
         'acceptBtnBgColor'  => $acceptBtnBgColor !== '' ? $acceptBtnBgColor : '#4CAF50',
         'acceptBtnTextColor'=> $acceptBtnTextColor !== '' ? $acceptBtnTextColor : '#FFFFFF',
-        'closeBtnColor'     => $closeBtnColor !== '' ? $closeBtnColor : 'rgb(255, 7, 7)',
+        'rejectBtnBgColor'  => $rejectBtnBgColor !== '' ? $rejectBtnBgColor : 'transparent',
+        'rejectBtnTextColor'=> $rejectBtnTextColor !== '' ? $rejectBtnTextColor : '#FFFFFF',
     ]
 ];
 
