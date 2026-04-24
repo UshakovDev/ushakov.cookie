@@ -9,7 +9,7 @@
     const currentSiteId = getSiteId()
     const endpoints = getRuntimeEndpoints()
 
-    if (hasConsentCookie(getConsentCookieName(currentSiteId))) {
+    if (getConsentDecision(currentSiteId) !== null) {
       return
     }
 
@@ -86,8 +86,32 @@
     return 'ushakov_cookie_' + siteId
   }
 
-  function hasConsentCookie (cookieName) {
-    return document.cookie.split('; ').some(row => row.startsWith(cookieName + '='))
+  function getCookieValue (cookieName) {
+    const prefix = cookieName + '='
+    const row = document.cookie.split('; ').find(item => item.startsWith(prefix))
+    if (!row) {
+      return ''
+    }
+
+    return decodeURIComponent(row.substring(prefix.length))
+  }
+
+  function normalizeDecision (value) {
+    const normalized = String(value || '').trim().toLowerCase()
+    if (normalized === 'accepted' || normalized === 'rejected') {
+      return normalized
+    }
+
+    // Backward compatibility with previous storage format.
+    if (normalized === '1') {
+      return 'accepted'
+    }
+
+    return null
+  }
+
+  function getConsentDecision (siteId) {
+    return normalizeDecision(getCookieValue(getConsentCookieName(siteId)))
   }
 
 
@@ -210,7 +234,6 @@
   }
 
   function insertCookieDiv(options) {
-    // Создаем элементы
     let cookieDiv = document.createElement('div')
     cookieDiv.style.zIndex = options.zIndex
     cookieDiv.id = 'ushakov-cookie-wrap'
@@ -231,200 +254,103 @@
     }
 
     let innerDiv = document.createElement('div')
-    innerDiv.classList.add('ushakov-cookie-bg-custom');
-    innerDiv.style.setProperty('--ushakov-cookie-bg', options.bgColor);
+    innerDiv.classList.add('ushakov-cookie-bg-custom')
+    innerDiv.style.setProperty('--ushakov-cookie-bg', options.bgColor)
 
     // радиус
     if (options.borderRadius) {
-      innerDiv.style.setProperty('--ushakov-cookie-radius', options.borderRadius);
+      innerDiv.style.setProperty('--ushakov-cookie-radius', options.borderRadius)
     }
 
     // тень (вкл/выкл)
     if (options.shadow === 'Y') {
-      innerDiv.style.setProperty('--ushakov-cookie-shadow', '0 8px 24px rgba(0, 0, 0, 0.85)');
+      innerDiv.style.setProperty('--ushakov-cookie-shadow', '0 8px 24px rgba(0, 0, 0, 0.85)')
     } else {
-      innerDiv.style.setProperty('--ushakov-cookie-shadow', 'none');
+      innerDiv.style.setProperty('--ushakov-cookie-shadow', 'none')
     }
 
     // выравнивание
-    const align = options.align || 'center';
-    cookieDiv.classList.add('ushakov-cookie--align-' + align);
+    const align = options.align || 'center'
+    cookieDiv.classList.add('ushakov-cookie--align-' + align)
 
     // макс. ширина и горизонтальные отступы
     innerDiv.style.setProperty('--ushakov-cookie-max-width', options.maxWidth)
     innerDiv.style.setProperty('--ushakov-cookie-offset-x', options.offsetX)
 
-    let cookieText = document.createElement('div')
+    const siteId = options.siteId || getSiteId()
+    const cookieText = document.createElement('div')
     cookieText.className = 'ushakov-cookie__text'
-
     cookieText.innerHTML = options.text
 
+    const acceptElement = document.createElement('span')
+    acceptElement.classList.add('button')
+    acceptElement.textContent = options.textButton && options.textButton.trim() !== '' ? options.textButton.trim() : 'Согласиться'
+    acceptElement.onclick = function () {
+      acceptConsent(siteId)
+    }
 
+    if (options.acceptBtnBgColor) {
+      acceptElement.style.backgroundColor = options.acceptBtnBgColor
+    }
+    if (options.acceptBtnTextColor) {
+      acceptElement.style.color = options.acceptBtnTextColor
+    }
 
-    // Вставляем либо кнопку "Согласен", либо крестик (иконка)
-    // + применяем цвет/позицию из настроек
-    let closeElement;
-    const hasTextButton = options.textButton && options.textButton.trim() !== '';
-
-    if (hasTextButton) {
-      // КНОПКА СОГЛАСИЯ
-      closeElement = document.createElement('span');
-      closeElement.classList.add('button');
-      closeElement.textContent = options.textButton.trim();
-      closeElement.onclick = function () {
-        acceptConsent(options.siteId || currentSiteId);
-      };
-
-      // Цвета кнопки из настроек (если заданы)
-      if (options.acceptBtnBgColor)  closeElement.style.backgroundColor = options.acceptBtnBgColor;
-      if (options.acceptBtnTextColor) closeElement.style.color = options.acceptBtnTextColor;
-      
-      // Добавляем hover-эффект затемнения
-      closeElement.addEventListener('mouseenter', function() {
-        if (options.acceptBtnBgColor) {
-          // Затемняем фон кнопки на 20%
-          const darkerColor = darkenColor(options.acceptBtnBgColor, 0.2);
-          this.style.backgroundColor = darkerColor;
-        }
-      });
-      
-      closeElement.addEventListener('mouseleave', function() {
-        if (options.acceptBtnBgColor) {
-          // Возвращаем исходный цвет фона
-          this.style.backgroundColor = options.acceptBtnBgColor;
-        }
-      });
-
-      // Позиция кнопки относительно текста
-      // left  — кнопка слева от текста (перед)
-      // right — справа (по умолчанию, после)
-      // bottom — снизу отдельной строкой
-      const btnPos = (options.acceptBtnPosition || 'right');
-
-      // Сбрасываем возможные стили из CSS темы
-      innerDiv.style.display = '';
-      innerDiv.style.flexDirection = '';
-      innerDiv.style.alignItems = '';
-      cookieText.style.margin = '';
-      closeElement.style.margin = '0';
-
-      // Универсальные стили для "рядом"
-      function asRow() {
-        innerDiv.style.display = 'flex';
-        innerDiv.style.alignItems = 'center';
-        // gap защищает от "слипания" без ручных margin
-        innerDiv.style.gap = '10px';
+    acceptElement.addEventListener('mouseenter', function () {
+      if (options.acceptBtnBgColor) {
+        this.style.backgroundColor = darkenColor(options.acceptBtnBgColor, 0.2)
       }
-
-      if (btnPos === 'left') {
-        asRow();
-        // на всякий случай уберём левый margin, если он задан в .button
-        closeElement.style.marginLeft = '0';
-        closeElement.style.marginRight = '0';
-        // помещаем кнопку перед текстом
-        innerDiv.appendChild(closeElement);
-        innerDiv.appendChild(cookieText);
-      } else if (btnPos === 'bottom') {
-        // столбец: текст сверху, кнопка ниже
-        innerDiv.style.display = 'flex';
-        innerDiv.style.flexDirection = 'column';
-        
-        // Текст выравниваем по align плашки
-        const align = (options.align || 'center');
-        innerDiv.style.alignItems =
-          align === 'left'  ? 'flex-start' :
-          align === 'right' ? 'flex-end'  : 'center';
-
-        innerDiv.appendChild(cookieText);
-        
-        // Кнопка ВСЕГДА по центру, независимо от выравнивания плашки
-        closeElement.style.display = 'inline-block';
-        closeElement.style.marginTop = '10px';
-        closeElement.style.alignSelf = 'center'; // принудительно по центру
-        innerDiv.appendChild(closeElement);
-      } else { // 'right' по умолчанию
-        asRow();
-        innerDiv.appendChild(cookieText);
-        innerDiv.appendChild(closeElement);
+    })
+    acceptElement.addEventListener('mouseleave', function () {
+      if (options.acceptBtnBgColor) {
+        this.style.backgroundColor = options.acceptBtnBgColor
       }
+    })
+
+    const rejectElement = document.createElement('span')
+    rejectElement.classList.add('button', 'button--reject')
+    rejectElement.textContent = options.rejectButtonText && options.rejectButtonText.trim() !== '' ? options.rejectButtonText.trim() : 'Отказаться'
+    rejectElement.onclick = function () {
+      rejectConsent(siteId)
+    }
+
+    const actionsDiv = document.createElement('div')
+    actionsDiv.className = 'ushakov-cookie__actions'
+    actionsDiv.appendChild(acceptElement)
+    actionsDiv.appendChild(rejectElement)
+
+    const btnPos = options.acceptBtnPosition || 'right'
+    innerDiv.style.display = ''
+    innerDiv.style.flexDirection = ''
+    innerDiv.style.alignItems = ''
+
+    if (btnPos === 'bottom') {
+      innerDiv.style.display = 'flex'
+      innerDiv.style.flexDirection = 'column'
+      innerDiv.style.gap = '10px'
+      innerDiv.style.alignItems =
+        align === 'left' ? 'flex-start' :
+        align === 'right' ? 'flex-end' : 'center'
+      actionsDiv.style.alignSelf = 'center'
+      innerDiv.appendChild(cookieText)
+      innerDiv.appendChild(actionsDiv)
+    } else if (btnPos === 'left') {
+      innerDiv.style.display = 'flex'
+      innerDiv.style.alignItems = 'center'
+      innerDiv.style.gap = '10px'
+      innerDiv.appendChild(actionsDiv)
+      innerDiv.appendChild(cookieText)
     } else {
-      // ---- КРЕСТИК ----
-      const rawPos  = (options.closeBtnPosition || 'right-top');
-      const crossPos = String(rawPos).trim();
-
-      // Если цвет не задан, используем красный по умолчанию
-      const closeBtnColor = options.closeBtnColor || 'rgb(255, 7, 7)';
-      
-      // Всегда создаем span-крестик с цветом (по умолчанию красный)
-      closeElement = document.createElement('span');
-      closeElement.textContent = '×';
-      closeElement.setAttribute('aria-label', 'Закрыть');
-      closeElement.setAttribute('role', 'button');
-      closeElement.tabIndex = 0;
-      closeElement.style.fontSize = '22px';
-      closeElement.style.lineHeight = '1';
-      closeElement.style.cursor = 'pointer';
-      closeElement.style.userSelect = 'none';
-      closeElement.style.color = closeBtnColor;
-      closeElement.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          closeBanner();
-        }
-      });
-      
-      // Добавляем hover-эффект затемнения для span-крестика
-      closeElement.addEventListener('mouseenter', function() {
-        const darkerColor = darkenColor(closeBtnColor, 0.2);
-        this.style.color = darkerColor;
-      });
-      
-      closeElement.addEventListener('mouseleave', function() {
-        this.style.color = closeBtnColor;
-      });
-      closeElement.onclick = closeBanner;
-
-      if (crossPos === 'left-top' || crossPos === 'right-top') {
-        // ВЕРХНИЕ позиции: FLEX-ряд (крестик и текст в одной строке)
-        innerDiv.style.display = 'flex';
-        innerDiv.style.flexWrap = 'nowrap';
-        innerDiv.style.alignItems = 'flex-start'; // выравнивание по верху
-        innerDiv.style.gap = '10px';
-        innerDiv.style.flexDirection = 'row';
-
-        if (crossPos === 'left-top') {
-          innerDiv.appendChild(closeElement);
-          innerDiv.appendChild(cookieText);
-        } else { // right-top
-          innerDiv.appendChild(cookieText);
-          innerDiv.appendChild(closeElement);
-        }
-
-      } else {
-        // СЕРЕДИНА слева/справа: FLEX-ряд (крестик и текст в одной строке)
-        innerDiv.style.display = 'flex';
-        innerDiv.style.flexWrap = 'nowrap';   // НЕ переносим на новую строку
-        innerDiv.style.alignItems = 'center';
-        innerDiv.style.gap = '10px';
-        innerDiv.style.flexDirection = 'row'; // явно указываем направление
-
-        if (crossPos === 'left-middle') {
-          innerDiv.appendChild(closeElement);
-          innerDiv.appendChild(cookieText);
-        } else { // right-middle
-          innerDiv.appendChild(cookieText);
-          innerDiv.appendChild(closeElement);
-        }
-      }
+      innerDiv.style.display = 'flex'
+      innerDiv.style.alignItems = 'center'
+      innerDiv.style.gap = '10px'
+      innerDiv.appendChild(cookieText)
+      innerDiv.appendChild(actionsDiv)
     }
 
     // Финальная сборка
     cookieDiv.appendChild(innerDiv);
     document.body.appendChild(cookieDiv);
-  }
-
-  function closeBanner () {
-    removeBanner()
   }
 
   function removeBanner () {
@@ -437,7 +363,7 @@
   function acceptConsent (siteId) {
     const consentSiteId = siteId || getSiteId();
 
-    saveConsent(consentSiteId)
+    saveConsent(consentSiteId, 'accepted')
     .then(saveResult => {
       return saveConsentRegistry(consentSiteId, saveResult && saveResult.guestClientId ? saveResult.guestClientId : '')
       .catch(error => {
@@ -452,7 +378,19 @@
     })
   }
 
-  function saveConsent (siteId) {
+  function rejectConsent (siteId) {
+    const consentSiteId = siteId || getSiteId()
+
+    saveConsent(consentSiteId, 'rejected')
+      .then(() => {
+        removeBanner()
+      })
+      .catch(error => {
+        console.error('Error saving rejection:', error)
+      })
+  }
+
+  function saveConsent (siteId, decision) {
     const endpoints = getRuntimeEndpoints()
 
     return fetch(endpoints.saveUrl, {
@@ -464,6 +402,7 @@
       body: new URLSearchParams({
         'sessid': getSessid(),
         'SITE_ID': siteId,
+        'decision': decision,
       })
     })
     .then(response => {

@@ -55,6 +55,18 @@
     color: #f1f1f1;
 }
 
+.ushakov-cookie__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ushakov-cookie .button--reject {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #f1f1f1;
+}
+
 /* Убираем фиксированный hover-эффект, чтобы он не конфликтовал с настройками модуля */
 /* .ushakov-cookie .button:hover {
     background: #000000e3;

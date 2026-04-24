@@ -62,6 +62,18 @@ if ($siteId === '') {
     $siteId = 's1';
 }
 
+$decision = strtolower(trim((string) $request->getPost('decision')));
+if ($decision === '') {
+    // Backward compatibility with old frontend that sent no decision.
+    $decision = 'accepted';
+}
+if (!in_array($decision, ['accepted', 'rejected'], true)) {
+    $response([
+        'success' => false,
+        'error' => 'Invalid decision',
+    ], 400);
+}
+
 $mode = Option::get('ushakov.cookie', 'consent_mode', 'days');
 $days = (int) Option::get('ushakov.cookie', 'days', '365');
 if ($days <= 0) {
@@ -105,7 +117,7 @@ if (!$isAuthorized) {
     ]);
 }
 
-setcookie($cookieName, '1', [
+setcookie($cookieName, $decision, [
     'expires' => $expires,
     'path' => $cookiePath,
     'secure' => $secure,
@@ -116,6 +128,7 @@ setcookie($cookieName, '1', [
 $response([
     'success' => true,
     'siteId' => $siteId,
+    'decision' => $decision,
     'cookieName' => $cookieName,
     'cookiePath' => $cookiePath,
     'guestClientId' => $guestClientId !== '' ? $guestClientId : null,
