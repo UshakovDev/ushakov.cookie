@@ -71,3 +71,15 @@ $MESS['USHAKOV_COOKIE_OPT_CONSENT_MODE'] = "Хранение согласия";
 $MESS['USHAKOV_COOKIE_OPT_CONSENT_MODE_DAYS'] = "На N дней";
 $MESS['USHAKOV_COOKIE_OPT_CONSENT_MODE_SESSION'] = "Только на время сессии браузера";
 $MESS["USHAKOV_COOKIE_OPT_DAYS"] = "На сколько дней сохранять согласие пользователя";
+
+// Управляемая Яндекс.Метрика (P2.2 v1)
+$MESS["USHAKOV_COOKIE_OPT_YM_MANAGED"] = "Управлять подключением Яндекс.Метрики через модуль";
+$MESS["USHAKOV_COOKIE_OPT_YM_COUNTER_ID"] = "ID счётчика Яндекс.Метрики";
+$MESS["USHAKOV_COOKIE_OPT_YM_COUNTER_ID_PLACEHOLDER"] = "напр. 12345678";
+$MESS["USHAKOV_COOKIE_OPT_YM_WEBVISOR"] = "Webvisor";
+$MESS["USHAKOV_COOKIE_OPT_YM_CLICKMAP"] = "Карта кликов (clickmap)";
+$MESS["USHAKOV_COOKIE_OPT_YM_TRACK_LINKS"] = "Отслеживание внешних ссылок (trackLinks)";
+$MESS["USHAKOV_COOKIE_OPT_YM_ACCURATE_TRACK_BOUNCE"] = "Точный показатель отказов (accurateTrackBounce)";
+$MESS["USHAKOV_COOKIE_OPT_YM_ECOMMERCE"] = "Включить e-commerce";
+$MESS["USHAKOV_COOKIE_OPT_YM_ECOMMERCE_CONTAINER"] = "Имя контейнера e-commerce";
+$MESS["USHAKOV_COOKIE_OPT_YM_DEBUG"] = "Debug-режим (логи в консоли helper'а)";

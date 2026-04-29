@@ -74,7 +74,8 @@ $groupNames = [
     'APPEARANCE' => 'Внешний вид',
     'POSITION' => 'Положение плашки',
     'BEHAVIOR' => 'Поведение и время',
-    'INTEGRATION' => 'Интеграция с Bitrix'
+    'INTEGRATION' => 'Интеграция с Bitrix',
+    'ANALYTICS' => 'Управляемая Яндекс.Метрика',
 ];
 
 /*
@@ -278,4 +279,40 @@ $tabControl->Begin();
     .adm-detail-content-table > tbody > tr.group-header[data-group="INTEGRATION"] td:before {
         content: "🔗 ";
     }
+
+    .adm-detail-content-table > tbody > tr.group-header[data-group="ANALYTICS"] td:before {
+        content: "📊 ";
+    }
 </style>
+
+<script>
+BX.ready(function () {
+    document.querySelectorAll('input[type="checkbox"][name^="ym_managed_"]').forEach(function (toggle) {
+        var siteId = toggle.name.substr('ym_managed_'.length);
+        var dependentNames = [
+            'ym_counter_id_' + siteId,
+            'ym_webvisor_' + siteId,
+            'ym_clickmap_' + siteId,
+            'ym_track_links_' + siteId,
+            'ym_accurate_track_bounce_' + siteId,
+            'ym_ecommerce_' + siteId,
+            'ym_ecommerce_container_' + siteId,
+            'ym_debug_' + siteId,
+        ];
+        var rows = dependentNames
+            .map(function (name) {
+                var input = document.querySelector('[name="' + name + '"]:not([type="hidden"])');
+                return input ? input.closest('tr') : null;
+            })
+            .filter(Boolean);
+
+        function applyState() {
+            var on = !!toggle.checked;
+            rows.forEach(function (row) { row.style.display = on ? '' : 'none'; });
+        }
+
+        toggle.addEventListener('change', applyState);
+        applyState();
+    });
+});
+</script>

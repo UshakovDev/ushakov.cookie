@@ -391,10 +391,31 @@
     })
     .then(() => {
       removeBanner()
+      maybeReloadForManagedAnalytics()
     })
     .catch(error => {
       console.error('Error saving consent:', error)
     })
+  }
+
+  // P2.2 v1: подключение Метрики выполняется на сервере в момент проликов.
+  // Чтобы пользователь сразу же стартовал с разрешённой аналитикой, после accepted
+  // делаем reload — но только если managed mode включён, counter задан и до accepted
+  // аналитика не была разрешена. Это безопаснее динамической инъекции на лету.
+  function maybeReloadForManagedAnalytics () {
+    const runtimeConfig = getRuntimeConfig()
+    const analytics = runtimeConfig && runtimeConfig.analytics ? runtimeConfig.analytics : null
+    if (!analytics) {
+      return
+    }
+    if (!analytics.managed || !analytics.counterId || analytics.allowed) {
+      return
+    }
+    try {
+      window.location.reload()
+    } catch (e) {
+      // ignore — сайт продолжит работать без reload
+    }
   }
 
   function rejectConsent (siteId) {
