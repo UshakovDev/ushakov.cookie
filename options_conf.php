@@ -270,6 +270,83 @@ $buildSiteOptions = static function (array $site): array {
         'group' => 'POSITION'
     ];
 
+    // ===== Managed Yandex Metrica (P2.2 v1) =====
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_managed_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_MANAGED'),
+        'value' => 'N',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'text',
+        'name' => 'ym_counter_id_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_COUNTER_ID'),
+        'value' => '',
+        'size' => 14,
+        'placeholder' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_COUNTER_ID_PLACEHOLDER'),
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_webvisor_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_WEBVISOR'),
+        'value' => 'Y',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_clickmap_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_CLICKMAP'),
+        'value' => 'Y',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_track_links_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_TRACK_LINKS'),
+        'value' => 'Y',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_accurate_track_bounce_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_ACCURATE_TRACK_BOUNCE'),
+        'value' => 'Y',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_ecommerce_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_ECOMMERCE'),
+        'value' => 'N',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'text',
+        'name' => 'ym_ecommerce_container_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_ECOMMERCE_CONTAINER'),
+        'value' => 'dataLayer',
+        'size' => 14,
+        'placeholder' => 'dataLayer',
+        'group' => 'ANALYTICS',
+    ];
+
+    $siteOptions[] = [
+        'type' => 'checkbox',
+        'name' => 'ym_debug_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DEBUG'),
+        'value' => 'N',
+        'group' => 'ANALYTICS',
+    ];
+
     return $siteOptions;
 };
 
