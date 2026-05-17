@@ -347,6 +347,14 @@ $buildSiteOptions = static function (array $site): array {
         'group' => 'ANALYTICS',
     ];
 
+    $siteOptions[] = [
+        'type' => 'diagnostics',
+        'name' => 'ym_debug_diagnostics_' . $siteId,
+        'title' => Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DIAGNOSTICS'),
+        'siteId' => $siteId,
+        'group' => 'ANALYTICS',
+    ];
+
     return $siteOptions;
 };
 

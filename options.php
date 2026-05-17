@@ -18,6 +18,11 @@ if ($modulePerms < 'R') {
 \Bitrix\Main\Localization\Loc::loadMessages($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/options.php');
 \Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 
+$debugLogPath = __DIR__ . '/lib/debuglog.php';
+if (is_file($debugLogPath)) {
+    require_once $debugLogPath;
+}
+
 // Получение конфигурации табов и опций
 $tabsConf = require __DIR__ . '/options_conf.php';
 
@@ -43,12 +48,43 @@ $getOptionValue = static function (string $moduleId, array $option) {
 
 // Сохранение значений
 $request = \Bitrix\Main\Context::getCurrent()->getRequest();
+
+if (
+    $request->isPost() &&
+    $modulePerms === 'W' &&
+    (string) $request->getPost('ushakov_debug_clear_site') !== '' &&
+    check_bitrix_sessid()
+) {
+    $clearSiteId = class_exists('UshakovCookieDebugLog')
+        ? UshakovCookieDebugLog::normalizeSiteId($request->getPost('ushakov_debug_clear_site'))
+        : preg_replace('/[^a-zA-Z0-9_]/', '', (string) $request->getPost('ushakov_debug_clear_site'));
+
+    if ($clearSiteId !== '' && class_exists('UshakovCookieDebugLog')) {
+        UshakovCookieDebugLog::clear($clearSiteId);
+    }
+
+    LocalRedirect(
+        $APPLICATION->GetCurPage() .
+        '?mid=' . urlencode($mid) .
+        '&lang=' . urlencode(LANGUAGE_ID) .
+        '&ushakov_debug_cleared=Y' .
+        '&' . $tabControl->ActiveTabParam()
+    );
+}
+
 if($request->isPost() && $Update.$Apply.$RestoreDefaults <> '' && $modulePerms === 'W' && check_bitrix_sessid())
 {
     if (strlen($RestoreDefaults) > 0) {
         \Bitrix\Main\Config\Option::delete($mid);
     } else {
         foreach ($arAllOptions as $arOption) {
+            if (
+                empty($arOption['name']) ||
+                in_array($arOption['type'] ?? '', ['heading', 'message', 'diagnostics'], true)
+            ) {
+                continue;
+            }
+
             $name = $arOption['name'];
             $val = $request->get($name);
             if ($val === null) {
@@ -77,6 +113,59 @@ $groupNames = [
     'INTEGRATION' => 'Интеграция с Bitrix',
     'ANALYTICS' => 'Управляемая Яндекс.Метрика',
 ];
+
+$renderDebugDiagnostics = static function (string $siteId) use ($mid, $modulePerms): string {
+    $siteId = class_exists('UshakovCookieDebugLog')
+        ? UshakovCookieDebugLog::normalizeSiteId($siteId)
+        : preg_replace('/[^a-zA-Z0-9_]/', '', $siteId);
+
+    $managed = \Bitrix\Main\Config\Option::get($mid, 'ym_managed_' . $siteId, 'N') === 'Y';
+    $debug = \Bitrix\Main\Config\Option::get($mid, 'ym_debug_' . $siteId, 'N') === 'Y';
+    $counterRaw = trim((string) \Bitrix\Main\Config\Option::get($mid, 'ym_counter_id_' . $siteId, ''));
+    $counterValid = $counterRaw !== '' && preg_match('/^\d+$/', $counterRaw) && (int) $counterRaw > 0;
+    $entries = class_exists('UshakovCookieDebugLog') ? UshakovCookieDebugLog::read($siteId, 100) : [];
+    $lines = [];
+
+    foreach ($entries as $entry) {
+        $lines[] = UshakovCookieDebugLog::formatEntry($entry);
+    }
+
+    $logText = $lines
+        ? implode(PHP_EOL, $lines)
+        : (string) \Bitrix\Main\Localization\Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DIAGNOSTICS_EMPTY');
+
+    $chip = static function (string $label, bool $ok, string $value): string {
+        return '<span class="ushakov-cookie-diag-chip ' . ($ok ? 'is-ok' : 'is-muted') . '">' .
+            htmlspecialcharsbx($label . ': ' . $value) .
+            '</span>';
+    };
+
+    $clearDisabled = $modulePerms === 'W' ? '' : ' disabled';
+    $clearButton = '<button type="submit" class="adm-btn" name="ushakov_debug_clear_site" value="' .
+        htmlspecialcharsbx($siteId) . '"' . $clearDisabled . '>' .
+        htmlspecialcharsbx((string) \Bitrix\Main\Localization\Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DIAGNOSTICS_CLEAR')) .
+        '</button>';
+
+    return '<div class="ushakov-cookie-diagnostics">' .
+        '<div class="ushakov-cookie-diag-status">' .
+        $chip('Managed', $managed, $managed ? 'Y' : 'N') .
+        $chip('Debug', $debug, $debug ? 'Y' : 'N') .
+        $chip('Counter ID', $counterValid, $counterValid ? $counterRaw : 'not set') .
+        $chip('Events', count($entries) > 0, (string) count($entries)) .
+        '</div>' .
+        '<textarea class="ushakov-cookie-diag-log" readonly rows="12">' . htmlspecialcharsbx($logText) . '</textarea>' .
+        '<div class="ushakov-cookie-diag-actions">' .
+        $clearButton .
+        '<span class="ushakov-cookie-diag-hint">' .
+        htmlspecialcharsbx((string) \Bitrix\Main\Localization\Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DIAGNOSTICS_HINT')) .
+        '</span>' .
+        '</div>' .
+        '</div>';
+};
+
+if ($request->get('ushakov_debug_cleared') === 'Y') {
+    CAdminMessage::ShowNote(\Bitrix\Main\Localization\Loc::getMessage('USHAKOV_COOKIE_OPT_YM_DIAGNOSTICS_CLEARED'));
+}
 
 /*
  * Вывод интерфейса опций
@@ -114,6 +203,8 @@ $tabControl->Begin();
                     ?><tr class="heading"><td colspan="2"><?=$arOption['heading']?></td></tr><?php
                 } elseif ($arOption['type'] === 'message') {
                     ?><tr><td colspan="2" align="center"><div class="adm-info-message-wrap" align="center"><div class="adm-info-message"><?=$arOption['message']?></div></div></td></tr><?php
+                } elseif ($arOption['type'] === 'diagnostics') {
+                    ?><tr><td colspan="2"><?=$renderDebugDiagnostics((string) ($arOption['siteId'] ?? 's1'))?></td></tr><?php
                 } else {
                     $val = $getOptionValue($mid, $arOption);
                     ?>
@@ -282,6 +373,69 @@ $tabControl->Begin();
 
     .adm-detail-content-table > tbody > tr.group-header[data-group="ANALYTICS"] td:before {
         content: "📊 ";
+    }
+
+    .ushakov-cookie-diagnostics {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #dce3e8;
+        border-radius: 4px;
+        background: #fbfdff;
+    }
+
+    .ushakov-cookie-diag-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .ushakov-cookie-diag-chip {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        background: #edf3f8;
+        color: #42515c;
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    .ushakov-cookie-diag-chip.is-ok {
+        background: #e6f4ea;
+        color: #166534;
+    }
+
+    .ushakov-cookie-diag-chip.is-muted {
+        background: #f1f3f5;
+        color: #6b7785;
+    }
+
+    .ushakov-cookie-diag-log {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        padding: 10px;
+        border: 1px solid #cfd9df;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #20262d;
+        font: 12px/1.5 Consolas, Monaco, monospace;
+        white-space: pre;
+    }
+
+    .ushakov-cookie-diag-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .ushakov-cookie-diag-hint {
+        color: #6b7785;
+        font-size: 12px;
+        line-height: 16px;
     }
 </style>
 
