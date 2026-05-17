@@ -22,6 +22,7 @@ Asset::getInstance()->addString(
             'optionsUrl' => '/bitrix/tools/ushakov_cookie_options.php',
             'saveUrl' => '/bitrix/tools/ushakov_cookie_save.php',
             'consentUrl' => '/bitrix/tools/ushakov_cookie_consent.php',
+            'debugUrl' => '/bitrix/tools/ushakov_cookie_debug.php',
         ],
         'analytics' => $ushakovCookieAnalyticsConfig,
     ]) . ';</script>'

@@ -15,6 +15,8 @@ if (class_exists('ushakov_cookie')) {
 
 class ushakov_cookie extends CModule
 {
+    private const DEBUG_LOG_TABLE = 'b_ushakov_cookie_debug_log';
+
     public $MODULE_ID = 'ushakov.cookie';
     public $MODULE_VERSION;
     public $MODULE_VERSION_DATE;
@@ -76,6 +78,8 @@ class ushakov_cookie extends CModule
 
     public function InstallDB($arParams = [])
     {
+        $this->InstallDebugLogTable();
+
         $defaultOptions = require __DIR__ . '/../options_conf.php';
         if (!is_array($defaultOptions) || !$defaultOptions) {
             return true;
@@ -102,8 +106,45 @@ class ushakov_cookie extends CModule
 
     public function UnInstallDB($arParams = [])
     {
+        if (empty($arParams['savedata'])) {
+            $this->UnInstallDebugLogTable();
+        }
+
         Option::delete($this->MODULE_ID);
         return true;
+    }
+
+    private function InstallDebugLogTable(): void
+    {
+        $connection = Application::getConnection();
+        if ($connection->isTableExists(self::DEBUG_LOG_TABLE)) {
+            return;
+        }
+
+        $connection->queryExecute(
+            'CREATE TABLE ' . self::DEBUG_LOG_TABLE . ' (
+                ID int(11) NOT NULL AUTO_INCREMENT,
+                DATE_INSERT datetime NOT NULL,
+                SITE_ID varchar(20) NOT NULL,
+                LEVEL varchar(10) NOT NULL,
+                EVENT varchar(80) NOT NULL,
+                MESSAGE varchar(500) NULL,
+                DETAILS text NULL,
+                PRIMARY KEY (ID),
+                KEY IX_USHAKOV_COOKIE_DEBUG_SITE_ID (SITE_ID, ID),
+                KEY IX_USHAKOV_COOKIE_DEBUG_SITE_DATE (SITE_ID, DATE_INSERT)
+            )'
+        );
+    }
+
+    private function UnInstallDebugLogTable(): void
+    {
+        $connection = Application::getConnection();
+        if (!$connection->isTableExists(self::DEBUG_LOG_TABLE)) {
+            return;
+        }
+
+        $connection->queryExecute('DROP TABLE ' . self::DEBUG_LOG_TABLE);
     }
 
     public function InstallEvents()
