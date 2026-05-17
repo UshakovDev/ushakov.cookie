@@ -32,6 +32,7 @@ jobs:
           
           # Копируем ТОЛЬКО файлы модуля (без документации)
           cp options.php options_conf.php include.php dist/ushakov.cookie/
+          cp -r lib dist/ushakov.cookie/
           cp -r lang dist/ushakov.cookie/
           cp -r install dist/ushakov.cookie/
           
