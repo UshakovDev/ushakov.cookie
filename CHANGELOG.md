@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Admin diagnostics panel for managed Yandex Metrica debug events.
+- DB-backed debug log collector for `window.ushakovCookieAnalytics`.
+
+### Changed
+- Managed Yandex Metrica debug events are stored in module diagnostics without browser console output.
+
+### Fixed
+- Release package now includes the module `lib/` directory.
+
 ## [0.0.1] - 2025-08-04
 
 ### Added
